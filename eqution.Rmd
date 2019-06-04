@@ -1,0 +1,309 @@
+---
+title: "Equation AHP"
+author: "Erica Goto"
+date: "3/31/2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r dataset}
+library(readxl)
+validation <- read_excel("validation.xlsx")
+```
+
+```{r}
+
+eq_AHP <- function (angle, building_material, building_position, soil, geology, nat_coverage, vegetation, density, water, instability, garbage){
+ 
+        ## ANGLE 
+        if (angle == "A") {angle <- 0.6336}  
+        if (angle == "B") {angle <- 0.999} 
+        if (angle == "C") {angle <- 1.798} 
+        if (angle == "D") {angle <- 3.015} 
+        if (angle == "E") {angle <- 5.685} 
+        if (angle == "F") {angle <- 5.848} 
+
+        ### Building material
+        if (building_material == "B") {building_material <- 0.775}  
+        if (building_material == "W") {building_material <- 3.152} 
+        if (building_material == "M") {building_material <- 3.595} 
+        
+        ### Building postion
+        if (building_position == "near_base_slope") {building_position <- 2.145}  
+        if (building_position == "near_top_slope") {building_position <- 1.504} 
+        if (building_position == "far_base_slope") {building_position <- 0.349} 
+        if (building_position == "far_top_slope") {building_position <- 0.286} 
+        if (building_position == "middle_slope") {building_position <- 2.063} 
+        
+        #### density
+        if (density == "d1") {density <- 0.952}  
+        if (density == "d2") {density <- 2.550} 
+        if (density == "d3") {density <- 2.961} 
+        if (density == "d4") {density <- 2.271}       
+    
+        ### soil (Y = soil favorable to unstable slope, NO = not observed, N = soil fav to slope stability)
+        if (soil == "Y") {soil <- 4.720}  
+        if (soil == "NO") {soil <- 2.360} 
+        if (soil == "N") {soil <- 0}       
+        
+        #### geology (Y = geol favorable to unstable slope, NO = not observed, N = geol fav to slope stability)
+         if (geology == "Y") {geology <- 4.651}
+        if (geology == "NO") {geology <- 2.326} 
+        if (geology == "N") {geology <- 0}        
+        
+        ### naturage coverage
+        if (nat_coverage == "Y") {nat_coverage <- 1.881}  
+        if (nat_coverage == "NO") {nat_coverage <- 0.941} 
+        if (nat_coverage == "N") {nat_coverage <- 0}         
+        
+        ### vegetation (ADD These)
+        ifelse (tree == 1, 0.370, 0)  
+        ifelse (shrubs == 1, 0.347, 0)  
+        ifelse (expose_soil == 1, 1.137, 0)  
+        ifelse (grass == 1, 0.405, 0)  
+        ifelse (banana == 1, 1.253, 0)  
+        ifelse (impermeabilization == 1, 0.339, 0)  
+        
+        vegetation <- tree + shrubs + expose_soil + grass + banana + impermeabilization
+
+        #### water (ADD These)
+        ifelse (sewage == 1, 0.961, 0)  
+        ifelse (conc_rainfall_water == 1, 0.977, 0)  
+        ifelse (leak == 1, 1.949, 0)  
+        ifelse (septic_tank == 1, 0.839, 0)  
+        if (drainage == "N") {drainage <- 0.624}  
+        if (drainage == "P") {drainage <- 0.535} 
+        if (drainage == "Y") {drainage <- 0.099}   
+        
+        water <- sewage + conc_rainfall_water + leak + septic_tank + drainage
+        
+        #### instability (ADD these)
+        ifelse (leaning_wall == 1, 9.533, 0)  
+        ifelse (tilted == 1, 9.533, 0)  
+        ifelse (floor_downward == 1, 16.877, 0)  
+        ifelse (scars == 1, 12.640, 0) 
+         ifelse (crack == 1, 11.016, 0) 
+
+        instability  <- leaning_wall + tilted + floor_downward + scars + crack        
+        
+        ##### garbage
+         ifelse (lixo == 1, 3.878, 0)  
+        ifelse (aterro == 1, 3.878, 0)  
+        ifelse (entulho == 1, 3.878, 0)  
+        
+        garbage <- lixo + aterro + entulho
+        
+        ifelse(garbage >= 3.878, 3.878, 0)
+        
+        
+        
+      
+Risk_Value <- angle + building_material + building_position + soil + geology + nat_coverage + vegetation + density + water + instability + garbage
+
+###Thresholds
+
+    if (Risk_Value < 26 ) {Risk_Value <-  R1}  
+        if (Risk_Value >=26 & Risk_Value <42) {Risk_Value <- R2} 
+      if (Risk_Value>=42 & Risk_Value<67) {Risk_Value <- R3} 
+    if (Risk_Value >=67) {Risk_Value <- R4}  
+   
+             return(Risk_Value)
+
+}
+        
+
+
+
+```
+
+
+
+
+
+
+```{r}
+
+
+eq_angle = function (df){
+                
+                
+                ## ANGLE 
+              ifelse (df$angle  == "A", 0.6336, ifelse (df$angle  == "B", 0.999, 
+                ifelse (df$angle  == "C",  1.798, 
+                ifelse (df$angle  == "D", 3.015, 
+                ifelse (df$angle  == "E", 5.685, 
+                ifelse (df$angle   =="F", 5.848, 0))))))
+        
+}
+angle <- eq_angle(validation)
+
+
+builidng_material = function (df){
+
+        
+        ### Building material
+        ifelse (df$building == "B", 0.775, 
+                ifelse (df$building == "W", 3.152, 
+                        ifelse (df$building == "M", 3.595,0)))
+        
+}
+        
+ building_material <- builidng_material(validation)       
+        
+        
+        
+ building_postion <- function (df){  
+        ### Building postion
+        ifelse (df$building_position == "near_base_slope", 2.145,   
+        ifelse (df$building_position == "near_top_slope",  1.504,  
+        ifelse (df$building_position == "far_base_slope",  0.349, 
+        ifelse (df$building_position == "far_top_slope", 0.286, 
+        ifelse (df$building_position == "middle_slope", 2.063))))) 
+
+         
+ }
+                 #### density
+ 
+ 
+  density <- function (df)
+ {
+        ifelse (df$density == "d1", 0.952,  
+        ifelse (df$density == "d2", 2.550, 
+        ifelse (df$density == "d3", 2.961, 
+        ifelse (df$density == "d4", 2.271, 0))))
+        
+ }
+    
+ density <- density (validation)
+ 
+        ### soil (Y = soil favorable to unstable slope, NO = not observed, N = soil fav to slope stability)
+ 
+ soil <- function (df)
+ {
+         
+        ifelse (soil == "Y", 4.720,  
+        ifelse (soil == "NO",  2.360, 
+        ifelse (soil == "N", 0, 0)))       
+ }
+        #### geology (Y = geol favorable to unstable slope, NO = not observed, N = geol fav to slope stability)
+ 
+# soil <- soil(validation)
+ 
+ geology <- function (df) {
+         ifelse (df$geology == "Y", 4.651, 
+        ifelse (df$geology == "NO",2.326, 
+        ifelse (df$geology == "N", 0, 0)))  
+        
+ }
+ 
+ # geology <- geology(validation)
+
+        ### naturage coverage
+ 
+ 
+nat_coverage <- function (df){
+ 
+        ifelse (df$nat_coverage == "Y",  1.881,  
+        ifelse (df$nat_coverage == "NO", 0.941, 
+        ifelse (df$nat_coverage == "N",0, 0)))   
+        
+ }
+        
+ 
+ # nat_coverage <-  nat_coverage(df)
+ 
+ ## vegetation (ADD These)
+  
+ vegetation <- function (df){
+        
+      df$tree <-  ifelse (df$tree == 1, 0.370, 0)  
+        df$ground_veg <- ifelse (df$ground_veg == 1, 1.137, 0)  
+       df$deforestation <-  ifelse (df$deforestation == 1, 0.405, 0)  
+       df$banana <-  ifelse (df$banana == 1, 1.253, 0)  
+
+        vegetation <- df$tree + df$ground_veg + df$banana +  df$deforestation
+        return(vegetation)
+}
+        
+  vegetation <-   vegetation(validation)   
+     
+     
+water <- function (df){        
+        
+        
+        
+        #### water (ADD These)
+     df$wastewater <-    ifelse ( df$wastewater  == 1, 0.961, 0)  
+       df$conc_rainfall_water <- ifelse (df$conc_rainfall_water == 1, 0.977, 0)  
+        df$leak <- ifelse (df$leak == 1, 1.949, 0)  
+       df$septic_tank <-  ifelse (df$septic_tank == 1, 0.839, 0)  
+       df$drainage <-  ifelse (df$drainage == "N", 0.624, 
+                         ifelse (df$drainage  == "P", 0.535, 
+                        ifelse (df$drainage == "Y", 0.099, 0)))  
+        
+        water <-  df$wastewater +  df$conc_rainfall_water +   df$leak + df$septic_tank + df$drainage
+        return(water)
+}
+        
+water <- water(validation)
+
+
+instability <- function(df) {
+
+        #### instability (ADD these)
+     df$leaning_wall <-    ifelse (df$leaning_wall == 1, 9.533, 0)  
+      df$tilted <-  ifelse (df$tilted == 1, 9.533, 0)  
+       df$downward<-  ifelse (df$floor_downward == 1, 16.877, 0)  
+       df$scars <-  ifelse ( df$scars == 1, 12.640, 0) 
+        df$crack <-  ifelse (df$crack == 1, 11.016, 0) 
+        
+        instability  <- df$leaning_wall + df$tilted + df$floor_downward + df$scars + df$crack 
+         
+}
+
+instability <- instability(validation)  
+        
+   ##### garbage
+
+
+garbage <- function (df) {
+     
+        df$lixo <- ifelse (df$lixo  == 1, 3.878, 0)  
+        df$aterro   <- ifelse (df$aterro == 1, 3.878, 0)  
+        df$entulho <- ifelse (df$entulho == 1, 3.878, 0)  
+        
+        garbage <-  df$lixo  +  df$aterro  + df$entulho
+        
+        ifelse(garbage >= 3.878, 3.878, 0)
+        
+        return (garbage)
+        
+}        
+
+garbage <- garbage(validation)
+        
+      
+Risk_Value <- angle +  building_material  + vegetation + density + water + instability + garbage +2.326 + 2.360 + 0.941+ 2.063+2.145+1.504
+
+###Thresholds
+
+  RiskValue <-   ifelse (Risk_Value < 26,  "R1",  
+        ifelse (Risk_Value >=26 & Risk_Value <42,  "R2", 
+      ifelse (Risk_Value>=42 & Risk_Value<67, "R3", 
+    ifelse (Risk_Value >=65, "R4", 0))))  
+   
+        RiskValue
+
+
+        
+
+```
+
+
+
+

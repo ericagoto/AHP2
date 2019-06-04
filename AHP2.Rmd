@@ -1,0 +1,242 @@
+---
+title: "AHP"
+author: "E G"
+date: "March 12, 2019"
+output: html_document
+fig_width: 30 
+fig_height: 50 
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Packages and library
+
+```{r}
+library(readxl)
+library (dplyr)
+library(ggplot2)
+data <- read_excel("data_pairwise_comparison.xlsx")
+
+data$ValuePAirwise <- as.numeric(data$ValuePAirwise)
+
+
+```
+
+
+### Subsetting dataset
+
+## Main:
+
+```{r}
+## Main
+Main <- data[c(1:3), c(1:2)]
+Main_normalized <- data.frame(Main$Parameter, Main$ValuePAirwise/100)
+
+```
+
+##Natural
+- Natural data.frame with specific value for each variable
+- 100 is the sum of all variable of natural
+- Find specific weight based on the total 17.1 for Natural parameters = Natural2 (multiplication of all the variable weight by 17.1 and divided by 100). This need to be done so the sum of the natural variables are not higher than 17.1. Other than that keep the relative weight based on the pairwise 
+```{r natural}
+Natural <- data[c(4:7),c(1:2)]
+colnames(Natural) <- c("Variable", "Weight")
+
+Natural_2<- data.frame(Natural$Variable, 17.1*(Natural$Weight/(100)))
+
+colnames(Natural_2) <- c("Variable", "Weight")
+```
+
+Now, we need to include values related with the subparameters. 
+- in this case don't need to divide by 100 since technician can choose just one angle. Divided by the highest value
+
+```{r slope_angle}
+Angle <- data[c(11:16), c(1:2)]
+Angle_2<- data.frame(Angle$Parameter, 5.8482*(Angle$ValuePAirwise/32.2))
+colnames(Angle_2) <- c("Variable", "Weight")
+
+```
+
+Soil, Natural Coverage, and Geology
+- use data.table Natural_2
+- for all the 3: desfavorable = 0%, favorable = 100%, not observed = 50%.
+
+## Combining Natural subparameters
+- 1) Combine data.frame Natural_2 + Angle_2
+- 2) Exclude slope angle 
+- 3) Include non_observed and change rows names (fav_geol, fav_soil, fav_natural_coverage)
+- 4) Include rows: desfav_geol, desfav_soil, desfav_natural_coverage
+- 5) round() for rounding number (3 decimal)
+```{r}
+N_subparameters <- rbind(Natural_2,Angle_2)
+
+new_df <- data.frame(
+        "Variable" <- c("non_observed_soil", "desf_soil", "non_observed_geol", "desf_geol", "non_observed_nat_coverage", "desf_nat_coverage"),
+        "Weight" <- c(Natural_2[2,2]/2, 0, Natural_2[4,2]/2, 0, Natural_2[3,2]/2, 0)
+        
+)
+colnames(new_df) <- c("Variable", "Weight")
+
+N_subparameters <- rbind(N_subparameters,new_df)
+N_subparameters <- N_subparameters[-1,]
+N_subparameters$Weight <- round(N_subparameters$Weight, 3)
+
+```
+
+
+## Anthropogenic
+
+- same steps done for Natural but now, total weight for Anthropogenic parameter is 23.3
+
+```{r}
+Anthropogenic <- data[c(17:22), c(1:2)]
+Anthropogenic_2 <- data.frame(Anthropogenic$Parameter, 23.5*(Anthropogenic$ValuePAirwise/100))
+colnames(Anthropogenic_2) <- c("Variable", "Weight")
+```
+
+```{r}
+
+Building_type <- data[c(23:25), c(1:2)]
+Building_type2 <- data.frame(Building_type$Parameter, 3.5955*Building_type$ValuePAirwise/47.8)
+colnames(Building_type2) <- c("Variable", "Weight")
+
+
+Building_position <- data[c(26:30), c(1:2)]
+
+
+
+Building_position2 <-  data.frame(Building_position$Parameter, 3.7130*Building_position$ValuePAirwise/(58.5)) # 58.5 is the max value this category could have if technician checked  middle+top & base near slope
+colnames(Building_position2) <- c("Variable", "Weight")
+
+
+
+
+Vegetation <- data[c(31:36), c(1:2)]
+Vegetation2 <-  data.frame(Vegetation$Parameter, 3.8540*Vegetation$ValuePAirwise/100)
+colnames(Vegetation2) <- c("Variable", "Weight")
+
+
+density <- data[c(43:46), c(1:2)]
+density2 <- data.frame(density$Parameter, 2.9610*density$ValuePAirwise/33.9)
+colnames(density2) <- c("Variable", "Weight")
+
+
+water <-data[c(50:54), c(1:2)]
+water2 <- data.frame(water$Parameter, 5.5225*water$ValuePAirwise/100)
+colnames(water2) <- c("Variable", "Weight")
+
+
+
+drainage <- data[c(47:49), c(1:2)]
+drainage2 <- data.frame(drainage$Parameter, 0.6240425*(drainage$ValuePAirwise/49.6))
+colnames(drainage2) <- c("Variable", "Weight")
+
+```
+
+## Combine Anthropogenic in one data.frame
+
+```{r}
+
+A_subparameters <- rbind(Anthropogenic_2,Building_type2, Building_position2, Vegetation2, density2, water2, drainage2)
+A_subparameters <- A_subparameters[-c(1,2,4,5,6,29 ),] 
+A_subparameters$Weight <- round(A_subparameters$Weight, 3)
+
+```
+
+
+##Instability
+```{r}
+Instability <-data[c(37:42), c(1:2)]
+colnames(Instability) <- c("Variable", "Weight")
+
+
+crack <- data.frame("crack", 15.6)
+colnames(crack) <- c("Variable", "Weight")
+
+Instability <- rbind(Instability,crack)
+
+Instability <- Instability[-c(2, 6),]
+
+
+Instability2 <- data.frame(Instability$Variable, 59.6*Instability$Weight/84.4)
+colnames(Instability2) <- c("Variable", "Weight")
+Instability2$Weight <- round(Instability2$Weight, 3)
+
+
+```
+
+
+
+## Combining in one single data.table
+
+```{r}
+df_weight <- rbind(N_subparameters, A_subparameters, Instability2)
+colnames(df_weight) <- c("Subparameter", "Weight")
+
+ df_weight                      
+```
+
+
+
+## Plotting Classifiers weight
+
+- dataset for plotting
+```{r}
+library(readxl)
+subparameters_weight <- read_excel("subparameters_weight_plot.xlsx")
+
+```
+
+
+
+```{r}
+#theme_set(theme_bw())  
+round(subparameters_weight$`specific weight`,2)
+subparameters_weight$`specific weight` <- as.integer(subparameters_weight$`specific weight`)
+
+#subparameters_weight$`specific weight` <- as.factor(subparameters_weight$`specific weight`)
+
+#theme_set(theme_gray(base_size = 10))
+
+g2 <- ggplot(subparameters_weight, aes(classifier, `specific weight`))+ 
+  geom_bar(stat='identity', aes(fill=type), width=0.6)  +
+   theme_bw()+
+  scale_fill_manual(name="Type", 
+                    labels = c("Anthropogenic", "Instability", "Natural"), 
+                    values = c(  "N"="#0e668b","A"="tomato3", "I"="olivedrab"))+ 
+  ylab("specific weight") +
+xlab("classifier") +
+  labs(fill="Type")+
+ # labs(subtitle="Alternative Weight - BGM'", 
+       #title= "Weight alternatives by pairwise comparison using AHP") 
+    
+coord_flip() 
+g2
+
+```
+
+## Simple plot 
+Instability, Natural, and Anthropogenic
+```{r, fig.height= 3, fig.width= 5, res=300}
+df2 <- data.frame("Criteria" <- c("anthropogenic", "natural", "instability" ), 
+"Paiwise Comparision Values" <-c(17.1, 23.3, 59.3))
+
+colnames (df2) <- c("Criteria", "Pairwise Comparision Values")
+
+
+g3 <- ggplot(df2, 
+             aes(x=Criteria, y=`Pairwise Comparision Values`))+
+        geom_bar(stat ="identity", aes(fill=Criteria), width=0.8)  +
+   theme_bw()+
+        scale_fill_manual(name="Category", 
+                    labels = c("anthropogenic", "instability",  "natural"), 
+values = c(  "anthropogenic"="tomato3", "natural"="#0e668b", "instability"="olivedrab"))+
+  scale_y_continuous(breaks= seq(0,60, 5), labels=c(0,"",10,"",20,"",30,"",40, "",50, "",60))
+
+
+g3
+
+```
+
